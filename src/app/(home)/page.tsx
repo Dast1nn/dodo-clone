@@ -1,4 +1,4 @@
-import { Container, Filters, Title, TopBar } from '@/components/shared'
+import { Container, Filters, Stories, Title, TopBar } from '@/components/shared'
 import { ProductsGroupList } from '@/components/shared/products-group-list'
 import { findPizzas } from '@/lib'
 import { GetSearchParams } from '@/lib/find-pizzas'
@@ -17,6 +17,7 @@ export default async function Home({
 			<TopBar
 				categories={categories.filter(category => category.products.length > 0)}
 			/>
+			<Stories />
 			<Container className='mt-10 pb-14'>
 				<div className='flex gap-[80px]'>
 					<div className='w-[250px]'>

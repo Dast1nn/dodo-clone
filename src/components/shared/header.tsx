@@ -1,9 +1,11 @@
+'use client'
 import { cn } from '@/lib/utils'
-import { User } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { CartButton, SearchInput } from '.'
-import { Button } from '../ui'
+import { useRouter, useSearchParams } from 'next/navigation'
+import React from 'react'
+import toast from 'react-hot-toast'
+import { AuthModal, CartButton, ProfileButton, SearchInput } from '.'
 import { Container } from './container'
 
 interface Props {
@@ -17,6 +19,27 @@ export const Header: React.FC<Props> = ({
 	hasSearch = true,
 	hasCart = true,
 }) => {
+	const searchParams = useSearchParams()
+	const router = useRouter()
+	const [openAuthModal, setOpenAuthModal] = React.useState(false)
+	React.useEffect(() => {
+		let toasMessage = ''
+		if (searchParams.has('paid')) {
+			toasMessage = 'Заказ оплачен успешно! Спасибо за покупку 😊'
+		}
+		if (searchParams.has('verified')) {
+			toasMessage = 'Почта успешно подтверждена!'
+		}
+		if (toasMessage) {
+			setTimeout(() => {
+				router.replace('/')
+				toast.success(toasMessage, {
+					duration: 3000,
+				})
+			}, 1000)
+		}
+	}, [])
+
 	return (
 		<header className={cn('border-b', className)}>
 			<Container className='flex items-center justify-between py-8 '>
@@ -38,11 +61,12 @@ export const Header: React.FC<Props> = ({
 					</div>
 				)}
 				<div className='flex items-center gap-3'>
-					<Button variant='outline' className='flex items-center gap-1'>
-						{' '}
-						<User size={16} />
-						Войти
-					</Button>
+					<AuthModal
+						open={openAuthModal}
+						onClose={() => setOpenAuthModal(false)}
+					/>
+
+					<ProfileButton onClickSignIn={() => setOpenAuthModal(true)} />
 					{hasCart && <CartButton />}
 				</div>
 			</Container>

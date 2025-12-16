@@ -1,8 +1,8 @@
 'use client'
 import { PizzaSize, PizzaType } from '@/constants/pizza'
+import { useCart } from '@/hooks'
 import { getCartItemDetails } from '@/lib'
 import { cn } from '@/lib/utils'
-import { useCartStore } from '@/store'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -27,16 +27,8 @@ export const CartDrawer: React.FC<React.PropsWithChildren<Props>> = ({
 	children,
 	className,
 }) => {
-	const totalAmount = useCartStore(state => state.totalAmount)
-	const fetchCartItems = useCartStore(state => state.fetchCartItems)
-	const items = useCartStore(state => state.items)
-	const updateItemQuantity = useCartStore(state => state.updateItemsQuantity)
-	const removeCartItem = useCartStore(state => state.removeCartItem)
-
-	React.useEffect(() => {
-		fetchCartItems()
-	}, [fetchCartItems])
-
+	const { totalAmount, items, updateItemQuantity, removeCartItem } = useCart()
+	const [redirecting, setRedirecting] = React.useState(false)
 	const onClickCountButton = (
 		id: number,
 		quantity: number,
@@ -101,15 +93,11 @@ export const CartDrawer: React.FC<React.PropsWithChildren<Props>> = ({
 												id={item.id}
 												imageUrl={item.imageUrl}
 												name={item.name}
-												details={
-													item.pizzaSize && item.pizzaType
-														? getCartItemDetails(
-																item.ingredients,
-																item.pizzaType as PizzaType,
-																item.pizzaSize as PizzaSize
-														  )
-														: ''
-												}
+												details={getCartItemDetails(
+													item.ingredients,
+													item.pizzaType as PizzaType,
+													item.pizzaSize as PizzaSize
+												)}
 												disabled={item.disabled}
 												price={item.price}
 												quantity={item.quantity}
@@ -133,7 +121,12 @@ export const CartDrawer: React.FC<React.PropsWithChildren<Props>> = ({
 											<span className='font-bold text-lg'>{totalAmount} ₸</span>
 										</div>
 										<Link href='/checkout'>
-											<Button type='submit' className='w-full h-12 text-base'>
+											<Button
+												onClick={() => setRedirecting(true)}
+												disabled={redirecting}
+												type='submit'
+												className='w-full h-12 text-base'
+											>
 												Оформить заказ
 												<ArrowRight className='w-5 ml-2' />
 											</Button>

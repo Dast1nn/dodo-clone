@@ -1,114 +1,112 @@
+'use client'
+import { createOrder } from '@/app/actions'
+import { CheckoutSidebar, Container, Title } from '@/components/shared'
 import {
-	CheckoutItem,
-	CheckoutItemDetails,
-	Container,
-	Title,
-	WhiteBlock,
-} from '@/components/shared'
-import { Button, Input, Textarea } from '@/components/ui'
-import { ArrowRight, Package, Percent, Truck } from 'lucide-react'
+	CheckoutAddressForm,
+	CheckoutCart,
+	CheckoutPersonalForm,
+} from '@/components/shared/checkout'
+import { checkoutFormSchema, CheckoutFormValues } from '@/constants'
+import { useCart } from '@/hooks'
+import { Api } from '@/services/api-clients'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useSession } from 'next-auth/react'
+import React from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
+import toast from 'react-hot-toast'
+export default function CheckoutPage() {
+	const { totalAmount, items, updateItemQuantity, removeCartItem, loading } =
+		useCart()
+	const [submitting, setSubmitting] = React.useState(false)
+	const { data: session } = useSession()
+	const form = useForm<CheckoutFormValues>({
+		resolver: zodResolver(checkoutFormSchema),
+		defaultValues: {
+			email: '',
+			firstName: '',
+			lastName: '',
+			phone: '',
+			address: '',
+			comment: '',
+		},
+	})
+	React.useEffect(() => {
+		async function fetchUserInfo() {
+			const data = await Api.auth.getMe()
+			const [firstName, lastName] = data.fullName.split(' ')
+			form.setValue('firstName', firstName)
+			form.setValue('lastName', lastName)
+			form.setValue('email', data.email)
+		}
+		if (session) {
+			fetchUserInfo()
+		}
+	}, [session])
 
-export default function CheckoutLayout() {
+	const onClickCountButton = (
+		id: number,
+		quantity: number,
+		type: 'plus' | 'minus'
+	) => {
+		const newQuantity = type === 'plus' ? quantity + 1 : quantity - 1
+		updateItemQuantity(id, newQuantity)
+	}
+
+	const onSubmit = async (data: CheckoutFormValues) => {
+		try {
+			setSubmitting(true)
+			const url = await createOrder(data)
+
+			toast.error('Заказ успешно оформлен! 📝 Переход на оплату... ', {
+				icon: '✅',
+			})
+
+			if (url) {
+				location.href = url
+			}
+		} catch (err) {
+			console.log(err)
+			setSubmitting(false)
+			toast.error('Не удалось создать заказ', {
+				icon: '❌',
+			})
+		}
+	}
 	return (
 		<Container className='mt-10'>
 			<Title
 				className='font-extrabold mb-8 text-[36px]'
 				text='Оформление заказа'
 			/>
-			<div className='flex gap-10'>
-				<div className='flex  flex-col gap-10 flex-1 mb-20'>
-					<WhiteBlock title='1. Корзина'>
-						<div className='flex flex-col gap-5'>
-							<CheckoutItem
-								id={1}
-								imageUrl='https://media.dodostatic.net/image/r:584x584/11EE7D61706D472F9A5D71EB94149304.webp'
-								name={'Fresh Veggie'}
-								details='kjasdnkajsd sdkjfasdfha'
-								price={2220}
-								quantity={3}
+			<FormProvider {...form}>
+				<form onSubmit={form.handleSubmit(onSubmit)}>
+					<div className='flex gap-10'>
+						<div className='flex  flex-col gap-10 flex-1 mb-20'>
+							<CheckoutCart
+								items={items}
+								onClickCountButton={onClickCountButton}
+								removeCartItem={removeCartItem}
+								loading={loading}
 							/>
-							<CheckoutItem
-								id={1}
-								imageUrl='https://media.dodostatic.net/image/r:584x584/11EE7D61706D472F9A5D71EB94149304.webp'
-								name={'Fresh Veggie'}
-								details='kjasdnkajsd sdkjfasdfha'
-								price={2220}
-								quantity={3}
-							/>
-						</div>
-					</WhiteBlock>
 
-					<WhiteBlock title='2. Персональные данные'>
-						<div className='grid grid-cols-2 gap-5'>
-							<Input name='firstName' className='text-base' placeholder='Имя' />
-							<Input
-								name='lastName'
-								className='text-base'
-								placeholder='Фамилия'
+							<CheckoutPersonalForm
+								className={loading ? 'opacity-40 pointer-events-none' : ''}
 							/>
-							<Input name='email' className='text-base' placeholder='E-Mail' />
-							<Input name='phone' className='text-base' placeholder='Телефон' />
-						</div>
-					</WhiteBlock>
 
-					<WhiteBlock title='3. Адрес доставки'>
-						<div className='flex flex-col gap-5'>
-							<Input
-								name='firstName'
-								className='text-base'
-								placeholder='Введите адрес доставки...'
-							/>
-							<Textarea
-								className='text-base'
-								placeholder='Комментарий к заказу'
-								rows={5}
+							<CheckoutAddressForm
+								className={loading ? 'opacity-40 pointer-events-none' : ''}
 							/>
 						</div>
-					</WhiteBlock>
-				</div>
-				<div className='w-[450px]'>
-					<WhiteBlock className='p-6 sticky top-4'>
-						<div className='flex flex-col gap-1'>
-							<span className='text-xl'>Итого:</span>
-							<span className='text-[34px] font-extrabold'>3600 ₸</span>
+
+						<div className='w-[450px]'>
+							<CheckoutSidebar
+								totalAmount={totalAmount}
+								loading={loading || submitting}
+							/>
 						</div>
-						<CheckoutItemDetails
-							title={
-								<div className='flex items-center '>
-									<Package size={18} className='mr-2 text-gray-300' />
-									Стоимость товаров:
-								</div>
-							}
-							value='3600 ₸'
-						/>
-						<CheckoutItemDetails
-							title={
-								<div className='flex items-center '>
-									<Percent size={18} className='mr-2 text-gray-300' />
-									Налоги:
-								</div>
-							}
-							value='300 ₸'
-						/>
-						<CheckoutItemDetails
-							title={
-								<div className='flex items-center '>
-									<Truck size={18} className='mr-2 text-gray-300' />
-									Доставка:
-								</div>
-							}
-							value='500 ₸'
-						/>
-						<Button
-							type='submit'
-							className='w-full h-14  rounded-2xl mt-6 text-base font-bold'
-						>
-							Перейти к оплате
-							<ArrowRight className='w-5 ml-2' />
-						</Button>
-					</WhiteBlock>
-				</div>
-			</div>
+					</div>
+				</form>
+			</FormProvider>
 		</Container>
 	)
 }
